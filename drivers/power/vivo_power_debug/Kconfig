@@ -1,0 +1,6 @@
+config VIVO_POWER_DEBUG
+	bool "VIVO Power Debug Feature"
+	default y
+	help
+	  VIVO Power Debug Feature
+

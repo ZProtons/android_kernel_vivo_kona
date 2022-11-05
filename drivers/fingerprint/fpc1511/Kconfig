@@ -1,0 +1,4 @@
+config BBK_FPC1511
+	tristate "FPC OEM fingerprint FPC1511 support"
+	help
+	  there is nothing for help!  

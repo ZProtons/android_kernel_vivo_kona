@@ -1,0 +1,23 @@
+menu "BBK FINGERPRINT support"
+config BBK_FINGERPRINT
+	tristate "BBK FINGERPRINT support"
+	help
+	  Say Y here to enable switch class support.
+
+if BBK_FINGERPRINT
+
+config BBK_FP_ID
+	tristate "BBK FP ID support"
+	help
+	  Say Y here to enable switch class support.
+
+config BBK_FP_HBM_INPUT
+	tristate "BBK FP HBM INPUT support"
+	help
+	  Say Y here to enable switch class support.
+endif
+
+source "drivers/fingerprint/gf9518/Kconfig"
+source "drivers/fingerprint/gf3208/Kconfig"
+source "drivers/fingerprint/fpc1511/Kconfig"
+endmenu

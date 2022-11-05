@@ -1,0 +1,141 @@
+This directory is created on Oct.11 2017.
+
+The directory tries to isolate all bsp stability code changes to conform to android treble arch.
+
+Background:
+	One of bsp team's project is to create a kernel moniter engine.
+	The engine should monitor kernel performance bottlenecks in scheduler,io, and memory.
+
+	Once the bottleneck is spotted, we report the exception through uevent mechanism to userspace.
+
+Design:
+	I work major in the scheduler part, so I will explain the scheduler bottleneck design first.
+	io and memory bottleneck design will be explained later.
+
+	1. D-state processes monitor:
+		when a process enters D-state (Disk Sleep state), the process can not be woken up by signals,
+		therefore it can not be killed. If a background process enters D-state, end user may not
+		even notice this, but if a foreground process enters D-state, such as a UI process, the 
+		UI may freeze, in end user's point of view, the phone is stuck or hang. A typical scenario
+		is mutex related deadlock.
+
+		how to find out an exceptional process hang in d-state?
+
+		d-state is stored in task_struct (t->state == TASK_UNINTERRUPTIBLE), and if the process wasn't
+		scheduled in the past 60 seconds (current switch count equals 60 seconds before), we define
+		this scenario as an exception and report it to the userspace.
+
+		how to get switch count of a process? This state is also stored in task_struct,
+		switch_count = t->nvcsw + t->nivcsw.
+
+		nvcsw --> n mean count, v means voluntary,c means context,  sw means switch, voluntary context
+		switch count, similarly
+
+		nincsw --> involuntary context switch count
+
+	2. preemption disabled exception:
+		if preemption is disabled exceptionally, and not reenabled correctly, the scheduler is not
+		allowed to schedule other process to run in current CPU. This exception result in bottle for
+		scheduler.
+
+		how to find out an exceptional preemption disable?
+
+		An typical charateristic of scheduler breaking down is that a highest priority process
+		can not normally run.
+
+		so we just start up a high priority RT process, and run it regularly to update a timestamp.
+		when the scheduler break down ,the processes can not schedule normally but he interrupt can
+		still be working. we monitor the RT process's stat in interrupt context. If the timestamp
+		stops updating, then a scheduler exception is spotted.
+
+		we should report this exception to userspace too.
+
+	3. interrupt disabled exception:
+		As is known to all, scheduler depends on timer tick to run, and timer tick depends on local
+		interrupt. if a code snippet calls disable_local_irq() and forgets to reenable it, then the
+		scheduler will suck too.
+
+		how to find out an exceptional interrupt disable?
+
+		This scenario is very similar to the previous scenario. so we just moniter interrupt from
+		NMI context. if the interrupt stops working, the timestamp stops updating. we can found out
+		this exception from NMI.
+
+	4. RT throttling exception:
+		RT processes have high priority, and if they don't give up CPU resource to CFS processes,
+		CFS processes will starve. This scenario is also a bottleneck that we need to monitor.
+
+		How do we find out this exception will not be explained here.
+
+	5. RCU stall CPU/process
+	
+	RCU stall can monitor the following exceptions, and the mechanism is so mature
+	that it is enabled by default in kernel from verion 2.6.
+
+o	A CPU looping in an RCU read-side critical section.
+	
+o	A CPU looping with interrupts disabled.  This condition can
+	result in RCU-sched and RCU-bh stalls.
+
+o	A CPU looping with preemption disabled.  This condition can
+	result in RCU-sched stalls and, if ksoftirqd is in use, RCU-bh
+	stalls.
+
+o	A CPU looping with bottom halves disabled.  This condition can
+	result in RCU-sched and RCU-bh stalls.
+
+o	For !CONFIG_PREEMPT kernels, a CPU looping anywhere in the
+	kernel without invoking schedule().  Note that cond_resched()
+	does not necessarily prevent RCU CPU stall warnings.  Therefore,
+	if the looping in the kernel is really expected and desirable
+	behavior, you might need to replace some of the cond_resched()
+	calls with calls to cond_resched_rcu_qs().
+
+o	Booting Linux using a console connection that is too slow to
+	keep up with the boot-time console-message rate.  For example,
+	a 115Kbaud serial console can be -way- too slow to keep up
+	with boot-time message rates, and will frequently result in
+	RCU CPU stall warning messages.  Especially if you have added
+	debug printk()s.
+
+o	Anything that prevents RCU's grace-period kthreads from running.
+	This can result in the "All QSes seen" console-log message.
+	This message will include information on when the kthread last
+	ran and how often it should be expected to run.
+
+o	A CPU-bound real-time task in a CONFIG_PREEMPT kernel, which might
+	happen to preempt a low-priority task in the middle of an RCU
+	read-side critical section.   This is especially damaging if
+	that low-priority task is not permitted to run on any other CPU,
+	in which case the next RCU grace period can never complete, which
+	will eventually cause the system to run out of memory and hang.
+	While the system is in the process of running itself out of
+	memory, you might see stall-warning messages.
+
+o	A CPU-bound real-time task in a CONFIG_PREEMPT_RT kernel that
+	is running at a higher priority than the RCU softirq threads.
+	This will prevent RCU callbacks from ever being invoked,
+	and in a CONFIG_PREEMPT_RCU kernel will further prevent
+	RCU grace periods from ever completing.  Either way, the
+	system will eventually run out of memory and hang.  In the
+	CONFIG_PREEMPT_RCU case, you might see stall-warning
+	messages.
+
+o	A hardware or software issue shuts off the scheduler-clock
+	interrupt on a CPU that is not in dyntick-idle mode.  This
+	problem really has happened, and seems to be most likely to
+	result in RCU CPU stall warnings for CONFIG_NO_HZ_COMMON=n kernels.
+
+o	A bug in the RCU implementation.
+
+o	A hardware failure.  This is quite unlikely, but has occurred
+	at least once in real life.  A CPU failed in a running system,
+	becoming unresponsive, but not causing an immediate crash.
+	This resulted in a series of RCU CPU stall warnings, eventually
+	leading the realization that the CPU had failed.
+
+	How do we find out a RCU stall will not be explained here.
+	Please refer to other materials.
+
+	edited by luochucheng.
+	2017.11.11

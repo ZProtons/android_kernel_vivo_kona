@@ -1,0 +1,4 @@
+menu "SOC (System On Chip) specific Drivers"
+
+source "drivers/soc/vivo/src/Kconfig"
+endmenu

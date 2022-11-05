@@ -1,0 +1,7 @@
+config AW8697_HAPTICS
+    tristate "AWINIC High Voltage Haptics support"
+    depends on LEDS_CLASS
+    depends on I2C
+    help
+        This option enables device driver support for the high voltage haptics
+        peripheral aw8697

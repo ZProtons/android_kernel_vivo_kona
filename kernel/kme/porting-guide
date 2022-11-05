@@ -1,0 +1,27 @@
+This directory is created on Oct.11 2017.
+
+background:
+	since there are so many projects and platforms in our company, it becomes more and more
+	important to pay attention to portability for our new feature code. Otherwise it will be
+	a disaster when we try to port our code from one project to another.
+
+porting guide:
+1. copy this whole directory (kernelroot/kernel/bsp_stablity) to your new project
+
+2. modify the parent directory's Makefile to enable built-in this module.
+	+obj-y += bsp_stability/
+
+3.enable kernel configs these features require:
+	so add these configs in your user config 
+	+CONFIG_LOCKUP_DETECTOR=y
+	+CONFIG_HARDLOCKUP_DETECTOR=y
+	+CONFIG_HARDLOCKUP_DETECTOR_NMI=y
+	+CONFIG_DETECT_HUNG_TASK=y
+
+	since rcu stall & rt throttle feature is included in the kernel without any config items.
+	you don't need to do anything about them.
+
+4.insert your monitor code in the stubs.
+
+	edited by luochucheng.
+	2017.11.11

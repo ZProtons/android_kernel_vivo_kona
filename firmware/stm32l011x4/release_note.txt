@@ -1,0 +1,45 @@
+[Note]:
+**************** Please Check commit link: http://smartgit/gerrit/#/c/2363888/ ****************
+1. dtsi: add:
+   stm32l011@50 {
+		... ...
+		MCU_BIN_DEFAULT_VENDOR {
+			support-board-version = "xxxxxxx";	//get from bbk_board_version
+
+			/*
+			 * check .bin file in @@kernel\msm-4.14\firmware\stm32l011x4\DirectCharger.bin
+			 * check information in @@kernel\msm-4.14\firmware\stm32l011x4\release_note.txt
+			*/
+			vivo,mcu-bin-name = "stm32l011x4/DirectCharger.bin";
+
+			//If no define in dtsi, we will read direct from the DirectCharger.bin file, the Last Byte in .bin file is this mcu-bin-version.
+			//vivo,mcu-bin-version = [2D];	//Hex
+		};
+
+		#if 0
+		MCU_BIN_DEBUG {
+			support-board-version = "xxx0xxx";	//get from bbk_board_version
+
+			vivo,mcu-bin-name = "stm32l011x4/DirectCharger_debug.bin";
+
+			//If no define in dtsi, we will read direct from the DirectCharger.bin file, the Last Byte in .bin file is this mcu-bin-version.
+			//vivo,mcu-bin-version = [1A];	//Hex
+		};
+		#endif
+   }
+
+2. .Kconfig: add
+	CONFIG_EXTRA_FIRMWARE="stm32l011x4/DirectCharger.bin stm32l011x4/DirectCharger_debug.bin"
+	CONFIG_EXTRA_FIRMWARE_DIR="firmware"
+
+3. add bin file in below dir:
+	@@kernel\msm-4.14\firmware\stm32l011x4\DirectCharger.bin
+	@@kernel\msm-4.14\firmware\stm32l011x4\DirectCharger_NXP.bin
+
+---------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------
+
+
+[History]:
+
+DirectCharger.bin: 20191225: version=0x12, project=PrivateGroups/mcu_sw, branch=PD1824_DUAL_CHG_FFC, [info=dual smb1396 dual battery project], [use= PD1916_100W|PD1916 ].
